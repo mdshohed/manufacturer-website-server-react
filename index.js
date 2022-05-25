@@ -79,7 +79,6 @@ async function run() {
       if(decodedEmail==email){
         const query = {email:email};
         const result = await orderCollection.find(query).toArray();
-        console.log(result);
         return res.send(result); 
       }
       else {
@@ -118,10 +117,16 @@ async function run() {
     })
 
     // Review 
+    app.get('/review', async(req, res)=>{
+      const review = await reviewCollection.find().toArray();
+      res.send(review);
+    })
+
     app.post('/review', async(req, res)=>{
       const review = req.body; 
+      console.log(review);
       const result = await reviewCollection.insertOne(review); 
-      res.send(result); 
+      res.send({result, success: true}); 
     })
   }
   finally{
