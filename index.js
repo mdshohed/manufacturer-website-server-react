@@ -36,6 +36,7 @@ async function run() {
     const toolsCollection = client.db('camera_tools').collection('tools');
     const userCollection = client.db('camera_tools').collection('users');
     const orderCollection = client.db('camera_tools').collection('orders');
+    const reviewCollection = client.db('camera_tools').collection('reviews');
 
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email;
@@ -62,12 +63,23 @@ async function run() {
       res.send(tool); 
     })
 
+    // Order 
+
+    app.get('/order/:id',verifyJWT, async(req, res)=>{
+      const id = req.params.id; 
+      const query = {_id: ObjectId(id)};
+      const result = await orderCollection.findOne(query);
+      console.log(result);
+      return res.send(result); 
+    })
+
     app.get('/order',verifyJWT, async(req, res)=>{
       const decodedEmail = req.decoded.email;
       const email = req.query.email;
       if(decodedEmail==email){
         const query = {email:email};
         const result = await orderCollection.find(query).toArray();
+        console.log(result);
         return res.send(result); 
       }
       else {
@@ -102,6 +114,13 @@ async function run() {
       console.log(id);
       const query = {_id:ObjectId(id)};
       const result = await orderCollection.deleteOne(query);
+      res.send(result); 
+    })
+
+    // Review 
+    app.post('/review', async(req, res)=>{
+      const review = req.body; 
+      const result = await reviewCollection.insertOne(review); 
       res.send(result); 
     })
   }
