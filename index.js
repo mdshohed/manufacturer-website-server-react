@@ -3,6 +3,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { query } = require('express');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -61,8 +62,17 @@ async function run() {
       res.send(tool); 
     })
 
-    app.get('/order', async(req, res)=>{
-
+    app.get('/order',verifyJWT, async(req, res)=>{
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      if(decodedEmail==email){
+        const query = {email:email};
+        const result = await orderCollection.find(query).toArray();
+        return res.send(result); 
+      }
+      else {
+        res.status(403).send({message: 'forbidden access'}); 
+      }
     })
 
     app.post('/order',async(req, res)=>{
@@ -85,6 +95,14 @@ async function run() {
       //   const result = await orderCollection.insertOne(order); 
       //   return res.send({result, success: true}); 
       // }
+    })
+    
+    app.delete('/order/:id', async(req, res)=>{
+      const id = req.params.id; 
+      console.log(id);
+      const query = {_id:ObjectId(id)};
+      const result = await orderCollection.deleteOne(query);
+      res.send(result); 
     })
   }
   finally{
