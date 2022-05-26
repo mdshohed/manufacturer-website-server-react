@@ -37,6 +37,7 @@ async function run() {
     const userCollection = client.db('camera_tools').collection('users');
     const orderCollection = client.db('camera_tools').collection('orders');
     const reviewCollection = client.db('camera_tools').collection('reviews');
+    const profileCollection = client.db('camera_tools').collection('profiles');
 
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email;
@@ -127,6 +128,32 @@ async function run() {
       console.log(review);
       const result = await reviewCollection.insertOne(review); 
       res.send({result, success: true}); 
+    })
+
+    // Profile
+    app.get('/profile', async(req, res)=>{
+      const email = req.query.email;
+      const query = {email: email}; 
+      const profile = await profileCollection.findOne(query); 
+      res.send(profile); 
+    })
+    
+    app.post('/profile', async(req, res)=>{
+      const profile = req.body; 
+      const email = profile.email; 
+      const filter = {email:email};
+      const exists = await profileCollection.findOne(filter); 
+      if(exists) {
+        const updateDoc = {
+          $set: profile,
+        }
+        const result = await profileCollection.updateOne(filter, updateDoc); 
+        res.send({result, success: true});
+      }
+      else {
+        const result = await profileCollection.insertOne(profile); 
+        return res.send({result, success: true});
+      }
     })
   }
   finally{
