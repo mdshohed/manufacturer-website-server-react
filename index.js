@@ -39,6 +39,34 @@ async function run() {
     const reviewCollection = client.db('camera_tools').collection('reviews');
     const profileCollection = client.db('camera_tools').collection('profiles');
 
+    const verifyAdmin = async(req, res, next)=>{
+      const requester = req.decoded.email;
+      const requesterAccount = await userCollection.findOne({ email: requester });
+      if (requesterAccount.role === 'admin') {
+        next(); 
+      }
+      else{
+        res.status(403).send({message: 'forbidden'});
+      }
+    }
+
+    app.put('/user/admin/:email', verifyJWT,verifyAdmin, async (req, res) => {
+      const email = req.params.email;
+
+      const filter = { email: email };
+      const updateDoc = {
+        $set: { role: 'admin' },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    })
+
+    app.get('/user', verifyJWT, async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
+    });
+
+
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -63,6 +91,13 @@ async function run() {
       const tool = await toolsCollection.findOne(query); 
       res.send(tool); 
     })
+    app.delete('/tool/:id', async(req, res)=>{
+      const id = req.params.id; 
+      const query = {_id:ObjectId(id)};
+      const result = await toolsCollection.deleteOne(query);
+      res.send(result); 
+    })
+
 
     // Order 
 
