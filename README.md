@@ -6,7 +6,7 @@
 - 
 
 ## Project used Feature 
-- 
+- [stripe](npm install --save stripe)
 
 ## Firebase Deploy
 - 

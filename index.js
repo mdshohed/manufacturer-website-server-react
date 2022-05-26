@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const { query } = require('express');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -38,6 +39,7 @@ async function run() {
     const orderCollection = client.db('camera_tools').collection('orders');
     const reviewCollection = client.db('camera_tools').collection('reviews');
     const profileCollection = client.db('camera_tools').collection('profiles');
+    const paymentCollection = client.db('camera_tools').collection('payments');
 
     const verifyAdmin = async(req, res, next)=>{
       const requester = req.decoded.email;
@@ -50,9 +52,30 @@ async function run() {
       }
     }
 
+  
+    app.post('/create-payment-intent',verifyJWT, async(req, res)=>{
+      const service = req.body; 
+      const price = service.price;
+      const amount = price*100; 
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount, 
+        currency: 'usd', 
+        payment_method_types: ['card']
+      }); 
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    }); 
+
+    app.get('/admin/:email', async(req, res) =>{
+      const email = req.params.email;
+      const user = await userCollection.findOne({email: email});
+      const isAdmin = user.role === 'admin';
+      res.send({admin: isAdmin})
+    })
+
     app.put('/user/admin/:email', verifyJWT,verifyAdmin, async (req, res) => {
       const email = req.params.email;
-
       const filter = { email: email };
       const updateDoc = {
         $set: { role: 'admin' },
@@ -80,6 +103,8 @@ async function run() {
       res.send({ result, token });
     })
 
+    // Products 
+
     app.get('/tools', async(req, res)=>{
       const tools = await toolsCollection.find().toArray(); 
       res.send(tools); 
@@ -91,6 +116,13 @@ async function run() {
       const tool = await toolsCollection.findOne(query); 
       res.send(tool); 
     })
+
+    app.post('/tool', async(req, res)=>{
+      const product = req.body; 
+      const result = await toolsCollection.insertOne(product); 
+      res.send({result, success: true}); 
+    })
+
     app.delete('/tool/:id', async(req, res)=>{
       const id = req.params.id; 
       const query = {_id:ObjectId(id)};
@@ -100,6 +132,11 @@ async function run() {
 
 
     // Order 
+
+    app.get('/order',verifyJWT, async(req, res)=>{
+      const result = await orderCollection.find().toArray();
+      return res.send(result); 
+    })
 
     app.get('/order/:id',verifyJWT, async(req, res)=>{
       const id = req.params.id; 
@@ -143,6 +180,22 @@ async function run() {
       res.send(result); 
     })
 
+    app.patch('/order/:id', verifyJWT, async(req, res)=>{
+      const id = req.params.id; 
+      const payment = req.body;
+      console.log(payment);
+      const filter = {_id: ObjectId(id)}; 
+      const updateDoc = {
+        $set: {
+          paid: true, 
+          transactionId: payment.transactionId,
+        }
+      }
+
+      const updateBooking = await orderCollection.updateOne(filter, updateDoc); 
+      const result = await paymentCollection.insertOne(payment); 
+      res.send(updateDoc); 
+    })
     // Review 
     app.get('/review', async(req, res)=>{
       const review = await reviewCollection.find().toArray();
