@@ -70,7 +70,6 @@ async function run() {
       const id = req.params.id; 
       const query = {_id: ObjectId(id)};
       const result = await orderCollection.findOne(query);
-      console.log(result);
       return res.send(result); 
     })
 
@@ -89,29 +88,21 @@ async function run() {
 
     app.post('/order',async(req, res)=>{
       const order = req.body; 
+      const id = order.productId;
+      const query = {_id: ObjectId(id)};
+      const parts = await toolsCollection.findOne(query);
+      const updateDoc = {
+        $set: {
+          quantity: parts.quantity - order.quantity,
+        }
+      }
+      await toolsCollection.updateOne(query, updateDoc); 
       const result = await orderCollection.insertOne(order); 
       res.send({result, success: true}); 
-      // const currentQuentity = order.quantity;
-      // const filter = {toolsName: order.toolsName}
-      // const exists = await orderCollection.findOne(filter);
-      // if(exists) {
-      //   order.quantity = parseInt(exists.quantity) + parseInt(currentQuentity);
-      //   const updateDoc = {
-      //     $set: {quantity: order.quantity }
-      //   }
-      //   console.log(order);
-      //   const result = await orderCollection.updateOne(filter, updateDoc); 
-      //   return res.send({success: true, order})
-      // }
-      // else {
-      //   const result = await orderCollection.insertOne(order); 
-      //   return res.send({result, success: true}); 
-      // }
     })
     
     app.delete('/order/:id', async(req, res)=>{
       const id = req.params.id; 
-      console.log(id);
       const query = {_id:ObjectId(id)};
       const result = await orderCollection.deleteOne(query);
       res.send(result); 
@@ -125,7 +116,6 @@ async function run() {
 
     app.post('/review', async(req, res)=>{
       const review = req.body; 
-      console.log(review);
       const result = await reviewCollection.insertOne(review); 
       res.send({result, success: true}); 
     })
@@ -135,7 +125,7 @@ async function run() {
       const email = req.query.email;
       const query = {email: email}; 
       const profile = await profileCollection.findOne(query); 
-      res.send(profile); 
+      res.send(profile)
     })
     
     app.post('/profile', async(req, res)=>{
