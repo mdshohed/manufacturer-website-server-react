@@ -133,7 +133,7 @@ async function run() {
 
     // Order 
 
-    app.get('/order',verifyJWT, async(req, res)=>{
+    app.get('/order/admin',verifyJWT, async(req, res)=>{
       const result = await orderCollection.find().toArray();
       return res.send(result); 
     })
@@ -180,10 +180,23 @@ async function run() {
       res.send(result); 
     })
 
+    app.patch('/order/admin/:id', verifyJWT, async(req, res)=>{
+      const id = req.params.id; 
+      console.log(id);
+      const filter = {_id: ObjectId(id)}; 
+      const updateDoc = {
+        $set: {
+          adminShipped: true, 
+        }
+      }
+
+      const updateOrder = await orderCollection.updateOne(filter, updateDoc); 
+      res.send(updateDoc); 
+    })
+
     app.patch('/order/:id', verifyJWT, async(req, res)=>{
       const id = req.params.id; 
       const payment = req.body;
-      console.log(payment);
       const filter = {_id: ObjectId(id)}; 
       const updateDoc = {
         $set: {
@@ -192,10 +205,11 @@ async function run() {
         }
       }
 
-      const updateBooking = await orderCollection.updateOne(filter, updateDoc); 
+      const updateOrder = await orderCollection.updateOne(filter, updateDoc); 
       const result = await paymentCollection.insertOne(payment); 
       res.send(updateDoc); 
     })
+
     // Review 
     app.get('/review', async(req, res)=>{
       const review = await reviewCollection.find().toArray();
